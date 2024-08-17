@@ -1,5 +1,5 @@
-SafeMode: SECURE
 ifndef::imagesdir[:imagesdir: Docs/Images/]
+ifdef::safe-mode-safe[:SafeMode: SECURE]
 
 = Read Me
 

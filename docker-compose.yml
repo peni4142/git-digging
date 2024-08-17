@@ -1,0 +1,24 @@
+services:
+  database:
+    build:
+      context: ./Database
+      dockerfile: Dockerfile
+    networks:
+      - own
+    ports:
+      - "5440:5432"
+  
+  grafana:
+    image: grafana/grafana
+    networks:
+      - own
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+networks:
+  own: {}
+
+volumes:
+  grafana-storage:

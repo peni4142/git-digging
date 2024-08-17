@@ -1,0 +1,9 @@
+ifndef::imagesdir[:imagesdir: Images/]
+
+== Programmflow
+
+Read with JavaScript via Git CLI its log and transfer it to a database where you can query the information via SQL. 
+
+It would only be files transferred that still exist but are beyond the renaming.
+
+

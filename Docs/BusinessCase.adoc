@@ -1,0 +1,32 @@
+ifndef::imagesdir[:imagesdir: Images/]
+
+== Get more value from git by digging into it!
+
+A git repository has a lot of information, but we have to dig into it for some information.
+
+Therefore is this solution.
+
+=== Bus Factor
+
+The bus factor is the number of people who can get rolled over by a bus (or stop working on the project for another reason) until the project fails. By creating it for the folders, you can see where you need more people on a project or a strong information exchange.
+
+
+image:bus_factor_docToolChain.png[]
+
+
+=== Most Edited Files
+
+Most files should not be edited too often. If you do so, you may have to consider reducing the file's responsibility. But sometimes, you want to exclude files from the view because you edit files often on purpose, a Changelog as an example.
+
+image:most_edited_files_docToolChain.png[]
+
+image:most_edited_files_two_time_spans.png[]
+
+=== File Coupling
+
+When changes to one file force changes to another file, you have a strong coupling. You should consider adding some abstraction there. Of course, there are also exceptions, too! If I develop the code further that changes behaviour, I probably want to document that. So documentation would probably have a strong coupling to parts of the source code. Maybe adjust the queries to ensure your documentation is not part of the evaluation.
+
+image:file_coupling_docToolChain.png[]
+
+
+

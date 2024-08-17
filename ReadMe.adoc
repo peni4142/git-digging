@@ -1,0 +1,9 @@
+ifndef::imagesdir[:imagesdir: Docs/Images/]
+
+= Read Me
+
+include::Docs/BusinessCase.adoc[]
+include::Docs/GettingStarted.adoc[]
+include::Docs/Programmflow.adoc[]
+include::Docs/Decissions.adoc[]
+include::Docs/BOM.adoc[]

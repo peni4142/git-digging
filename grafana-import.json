@@ -1,0 +1,465 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_GRAFANA-POSTGRESQL-DATASOURCE",
+      "label": "grafana-postgresql-datasource",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "panel",
+      "id": "barchart",
+      "name": "Bar chart",
+      "version": ""
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "11.1.3"
+    },
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_GRAFANA-POSTGRESQL-DATASOURCE}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed+area"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "folder_short",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_GRAFANA-POSTGRESQL-DATASOURCE}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH folder_commits_by_author AS (SELECT folder_commits.folder, commit_author.name as author, count(*) as commits\nFROM (SELECT authors.name, commits.id as commit_id\n\tFROM authors\n\tRIGHT JOIN commits ON commits.author = authors.id) commit_author\nRIGHT JOIN\n\t(SELECT files_and_folders.folder as folder, files_commits.commit_id as commit_id\n\tFROM files_commits\n\tRIGHT JOIN\n\t    (SELECT filename, folders.folder as folder, files.id as file_id\n\t\tFROM files\n\t\tLEFT JOIN\n\t\t\t(SELECT folder\n\t\t\tFROM\n\t\t\t\t(SELECT substring (filename, '.*(?=\\/[^\\/]*)') as folder, count(*) as counted\n\t\t\t\tFROM files\n\t\t\t\tWHERE filename NOT LIKE '%.git%'\n\t\t\t\tAND filename NOT LIKE '%images%'\n\t\t\t\tAND filename NOT LIKE '%docs%'\n\t\t\t\tAND filename NOT LIKE '%assets%'\n\t\t\t\tGROUP BY folder)\n\t\t\tWHERE counted > 5) folders\n\t\tON files.filename LIKE CONCAT(folders.folder, '%')\n\t\tWHERE folder NOT LIKE '.') files_and_folders ON files_and_folders.file_id = files_commits.file_id) folder_commits\nON folder_commits.commit_id = commit_author.commit_id\nGROUP BY folder, author)\n\nSELECT folder_commits_by_author.folder, substring(folder_commits_by_author.folder from '[^\\/]+$') as folder_short, count(*) as bus_factor, ARRAY_AGG(author) as authots\nFROM folder_commits_by_author\nLEFT JOIN\n\t(SELECT folder, SUM(commits) as commits_on_folder\n\tFROM folder_commits_by_author\n\tGROUP BY folder) folder_commits ON folder_commits.folder = folder_commits_by_author.folder\nWHERE commits/folder_commits.commits_on_folder > 0.1\nOR commits > 5\nGROUP BY folder_commits_by_author.folder\nORDER BY bus_factor",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Bus Factor by Folder",
+      "transparent": true,
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_GRAFANA-POSTGRESQL-DATASOURCE}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "filename",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_GRAFANA-POSTGRESQL-DATASOURCE}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "\tSELECT files.filename as fullfilename, substring(files.filename from '[^\\/]*$') as filename, filecount.counted as commits\n\tFROM files\n\tINNER JOIN\n\t\t(SELECT files_commits.file_id, COUNT(*) as counted\n\t\tFROM files_commits\n\t\tLEFT JOIN\n\t\t\t(SELECT commits.id \n\t\t\tFROM commits\n\t\t\tLEFT JOIN (\n\t\t\t\tSELECT id, name\n\t\t\t\tFROM authors\n\t\t\t\tWHERE name NOT LIKE '%[bot]%'\n\t\t\t\t) no_bots ON commits.author = no_bots.id \n\t\t\tWHERE commits.datetime < NOW () AND commits.datetime > NOW() - INTERVAL '10 days'\n\t\t\t) relevant_commits on relevant_commits.id = files_commits.file_id\n\t\tGROUP BY files_commits.file_id\n\t    ORDER BY counted DESC\n\t\t) filecount ON filecount.file_id = files.id\n\tWHERE files.filename NOT LIKE '%.adoc' AND files.filename NOT LIKE '%.md'\n\tORDER BY counted DESC\n\tLIMIT 10",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Most edited files",
+      "transparent": true,
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_GRAFANA-POSTGRESQL-DATASOURCE}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "filename_left"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 370
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "common_commits"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 153
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "counted_commits_right"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 172
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "commits_left"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 108
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "commits_right"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 112
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "commits"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "11.1.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_GRAFANA-POSTGRESQL-DATASOURCE}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH files_commits_with_filename AS (\n    SELECT commits.id AS commit_id, commits.hash, files_commits.file_id, files_commits.filename, files_commits.counted_commits AS counted_commits\n\tFROM commits\n\tINNER JOIN\n\t\t(SELECT commit_id, files_with_commits_counter.file_id, filename, files_with_commits_counter.counted_commits\n\t\tFROM files_commits\n\t\tINNER JOIN (\n\t\t\tSELECT count(*) AS counted_commits, files.id AS file_id, filename\n\t\t\tFROM files_commits\n\t\t\tLEFT JOIN files ON files_commits.file_id = files.id\n\t\t\tGROUP BY files.id, filename\n\t\t) files_with_commits_counter ON files_commits.file_id = files_with_commits_counter.file_id\n\tWHERE filename NOT LIKE '%docs%'\n\tAND filename NOT LIKE '%.adoc'\n\tAND files_with_commits_counter.counted_commits > 5) files_commits\n\tON files_commits.commit_id = commits.id\n)\n\nSELECT * FROM\n(SELECT lefti.filename AS filename_left, lefti.counted_commits AS commits_left, count(*) AS common_commits, righti.counted_commits AS commits_right, righti.filename AS filename_right, ARRAY_AGG(lefti.hash) AS commits\n\tFROM files_commits_with_filename AS lefti\nLEFT JOIN files_commits_with_filename AS righti ON lefti.commit_id = righti.commit_id\nWHERE lefti.file_id < righti.file_id\nGROUP BY lefti.file_id, righti.file_id, lefti.filename, righti.filename, lefti.counted_commits, righti.counted_commits\nORDER BY common_commits DESC)\nWHERE common_commits > 5\nAND ((CAST (common_commits AS float))/ (CAST (commits_left AS FLOAT)) > 0.3\n\tOR (CAST (common_commits AS float))/ (CAST (commits_right AS FLOAT)) > 0.3)\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "File Coupling",
+      "transparent": true,
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "2024-07-20T15:59:07.982Z",
+    "to": "2024-07-24T15:59:07.998Z"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "timezone": "browser",
+  "title": "GIT DIGGING",
+  "uid": "adtxvk2mbg83kd",
+  "version": 17,
+  "weekStart": ""
+}

@@ -1,0 +1,39 @@
+ifndef::imagesdir[:imagesdir: Images/]
+
+== Getting Started
+
+* To get started, start the docker composition `docker compose up`.
+* Then, run the script in the git directory, that you want to analyze. 
+* Define the datasource and import the dashboard 
+** Connect to port 3000 `http://localhost:3000/`
+** Fill in the user: "admin" password: "admin", you have to reset the password. 
+** Go to "Connections"/"Add new Connection"
+** Search for "PostgreSQL", click it, and click "Add new data source" fill in the connection data into the form:
+
+[%autowidth]
+|===
+| Label| Value
+
+| Host URL
+| database
+
+| Database name
+| git_reflection
+
+| Username
+| user
+
+| PASSWORD
+| ASkj2410dkAL
+
+|TLS/SSL Mode
+|disable
+|===
+
+** Let the rest by default and click "Save & test"
+** Go to "Dashboards", *NOT* "building a Dashboard", click "New" and "Import"
+** Upload the file "grafana-import.json"
+** Choose your "grafana-postgresql-database"
+** Click Import
+
+*Yes, the Getting Started section is longer than I like, so if you have any ideas about improving it, I would like to hear them.*

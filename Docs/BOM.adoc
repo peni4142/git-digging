@@ -1,0 +1,33 @@
+ifndef::imagesdir[:imagesdir: Images/]
+
+== Bill of Materials
+
+[%autowidth]
+|===
+|Materials|Comment
+
+| AsciiDoctor
+| To generate a documentation in HTML format.
+
+| Docker
+| To set up the containers to run Grafana and PostgreSQL and to generate the documentation via AsciiDoctor. 
+
+| Git
+| To manage the code by having version control.
+
+| node_modules pg
+| To execute SQL queries on a PostgreSQL Database
+
+| node_modules pg-format
+| To prevent SQL injection.
+
+| Node.js
+| To execute the JavaScript, that fills the database.
+
+| PostgreSQL
+| To store the data in a queryable format.
+
+| Grafana
+| To visualize the data.
+|===
+

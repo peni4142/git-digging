@@ -1,0 +1,30 @@
+ifndef::imagesdir[:imagesdir: Images/]
+
+## Decissions
+
+### Programing Language (JavaScript)
+
+I decided to go for JavaScript because it is widely used and need that much of a setup. I also considered to use C#, TypeScript or Deno.
+
+[%autowidth]
+|===
+|Atlernative|Reason not to use that.
+
+| C#
+| C#	is not as widely used as JavaScript.
+
+| Deno
+| It would have messed up my TypeScript setup; it would have been the same for others.
+
+| TypeScript
+| The task is so tiny that the gain of TypeScript is so slight that the gain is not about the effort to set it up.
+|===
+
+
+=== Storage (PostgreSQL)
+
+Initially, I was still determining if I would work with a relational or a NoSQL database. And, of course, for an open-source project, it had to be an open-source solution. So PostgreSQL will fit fine and the nether less; I already have some experience with PostgreSQL.
+
+=== Visualization/Dashboard (Grafana)
+
+I was going to Grafana because I needed some experience in that field. It is not the best solution for that case. Another problem is getting the timespan in that kind of aggregation. However, I have chosen Grafana, which is not that big of a problem because you can add any other visualization technology. So, if you want to use Metabase, Redash, or something else, go for it. The Grafana-used SQL queries are also stored in Example-Requests.

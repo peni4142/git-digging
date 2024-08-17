@@ -1,6 +1,4 @@
 ifndef::imagesdir[:imagesdir: Docs/Images/]
-ifdef::safe-mode-safe[:SafeMode: SECURE]
-
 = Read Me
 
 include::Docs/BusinessCase.adoc[]
@@ -8,3 +6,7 @@ include::Docs/GettingStarted.adoc[]
 include::Docs/Programmflow.adoc[]
 include::Docs/Decissions.adoc[]
 include::Docs/BOM.adoc[]
+
+ifdef::github[]
+ Surprisingly, GitHub doesn't support asciidoc. I apologize for the inconvenience with the readme.
+endif::github[]

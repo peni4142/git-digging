@@ -1,5 +1,9 @@
 ifndef::imagesdir[:imagesdir: Docs/Images/]
 
+ifdef::safe-mode-safe[]
+SafeMode: SAFE
+endif::safe-mode-safe[]
+
 = Read Me
 
 include::Docs/BusinessCase.adoc[]

@@ -70,7 +70,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 12,
         "w": 19,
         "x": 0,
         "y": 0
@@ -95,7 +95,7 @@
           "sort": "none"
         },
         "xField": "folder_short",
-        "xTickLabelRotation": 0,
+        "xTickLabelRotation": 15,
         "xTickLabelSpacing": 0
       },
       "pluginVersion": "11.3.0+security-01",
@@ -144,13 +144,40 @@
           }
         },
         {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "lower",
+                  "options": {
+                    "value": "1000"
+                  }
+                },
+                "fieldName": "bus_factor"
+              },
+              {
+                "config": {
+                  "id": "greater",
+                  "options": {
+                    "value": 0
+                  }
+                },
+                "fieldName": "bus_factor"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
           "filter": {
             "id": "byRefId",
             "options": "A"
           },
           "id": "limit",
           "options": {
-            "limitField": "15"
+            "limitField": "25"
           },
           "topic": "series"
         }
@@ -186,8 +213,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 5,
+        "h": 5,
+        "w": 4,
         "x": 19,
         "y": 0
       },
@@ -334,10 +361,10 @@
         ]
       },
       "gridPos": {
-        "h": 10,
+        "h": 13,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 12
       },
       "id": 4,
       "options": {
@@ -442,10 +469,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 12
       },
       "id": 1,
       "options": {
@@ -546,7 +573,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 370
+                "value": 530
               }
             ]
           },
@@ -609,14 +636,38 @@
                 "value": true
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fullfilename_left"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 141
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "filename_right"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 149
+              }
+            ]
           }
         ]
       },
       "gridPos": {
-        "h": 13,
-        "w": 13,
+        "h": 27,
+        "w": 16,
         "x": 0,
-        "y": 18
+        "y": 25
       },
       "id": 3,
       "options": {
@@ -642,7 +693,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH files_commits_with_filename AS (\n    SELECT commits.id AS commit_id, commits.hash, files_commits.file_id, files_commits.filename, files_commits.counted_commits AS counted_commits\n\tFROM commits\n\tINNER JOIN\n\t\t(SELECT commit_id, files_with_commits_counter.file_id, filename, files_with_commits_counter.counted_commits\n\t\tFROM files_commits\n\t\tINNER JOIN (\n\t\t\tSELECT count(*) AS counted_commits, files.id AS file_id, filename\n\t\t\tFROM files_commits\n\t\t\tLEFT JOIN files ON files_commits.file_id = files.id\n\t\t\tGROUP BY files.id, filename\n\t\t) files_with_commits_counter ON files_commits.file_id = files_with_commits_counter.file_id\n\tWHERE filename NOT LIKE '%docs%'\n\tAND filename NOT LIKE '%.adoc'\n\tAND files_with_commits_counter.counted_commits > 5) files_commits\n\tON files_commits.commit_id = commits.id\n)\n\nSELECT * FROM\n(SELECT lefti.filename AS filename_left, lefti.counted_commits AS commits_left, count(*) AS common_commits, righti.counted_commits AS commits_right, righti.filename AS filename_right, ARRAY_AGG(lefti.hash) AS commits\n\tFROM files_commits_with_filename AS lefti\nLEFT JOIN files_commits_with_filename AS righti ON lefti.commit_id = righti.commit_id\nWHERE lefti.file_id < righti.file_id\nGROUP BY lefti.file_id, righti.file_id, lefti.filename, righti.filename, lefti.counted_commits, righti.counted_commits\nORDER BY common_commits DESC)\nWHERE common_commits > 5\nAND ((CAST (common_commits AS float))/ (CAST (commits_left AS FLOAT)) > 0.3\n\tOR (CAST (common_commits AS float))/ (CAST (commits_right AS FLOAT)) > 0.3)\n",
+          "rawSql": "WITH files_commits_with_filename AS (\n    SELECT no_bot_commits.commit_id, no_bot_commits.hash, files_commits.file_id, files_commits.filename, files_commits.counted_commits AS counted_commits\n\tFROM (\n\t\tSELECT commits.id AS commit_id, commits.hash\n\t\tFROM commits\n\t\tWHERE author NOT IN (SELECT id FROM authors WHERE authors.name LIKE '%[bot]%')\n\t\tAND commits.datetime < NOW ()\n\t\tAND commits.datetime > NOW() - INTERVAL '1 year'\n\t) no_bot_commits\n\tINNER JOIN\n\t\t(SELECT commit_id, files_with_commits_counter.file_id, filename, files_with_commits_counter.counted_commits\n\t\tFROM files_commits\n\t\tINNER JOIN (\n\t\t\tSELECT count(*) AS counted_commits, files.id AS file_id, filename\n\t\t\tFROM files_commits\n\t\t\tLEFT JOIN files ON files_commits.file_id = files.id\n\t\t\tGROUP BY files.id, filename\n\t\t) files_with_commits_counter ON files_commits.file_id = files_with_commits_counter.file_id\n\tWHERE filename NOT LIKE '%docs%'\n\tAND filename NOT LIKE '%.adoc'\n\tAND filename NOT LIKE '%Tests.cs'\n\tAND filename LIKE '%PowerOptApi%'\n\tAND files_with_commits_counter.counted_commits > 5\n\t) files_commits\n\tON files_commits.commit_id = no_bot_commits.commit_id\n)\n\nSELECT * FROM\n(SELECT lefti.filename AS fullfilename_left, substring(lefti.filename from '[^\\/]*$') as filename_left, lefti.counted_commits AS commits_left, count(*) AS common_commits, righti.counted_commits AS commits_right, substring(righti.filename from '[^\\/]*$') as filename_right, righti.filename AS fullfilename_right, ARRAY_AGG(lefti.hash) AS commits\n\tFROM files_commits_with_filename AS lefti\nLEFT JOIN files_commits_with_filename AS righti ON lefti.commit_id = righti.commit_id\nWHERE lefti.file_id < righti.file_id\nGROUP BY lefti.file_id, righti.file_id, lefti.filename, righti.filename, lefti.counted_commits, righti.counted_commits\nORDER BY common_commits DESC)\nWHERE common_commits > 5\nAND ((CAST (common_commits AS float))/ (CAST (commits_left AS FLOAT)) > 0.3\n\tOR (CAST (common_commits AS float))/ (CAST (commits_right AS FLOAT)) > 0.3)\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -664,12 +715,198 @@
         }
       ],
       "title": "File Coupling",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "fullfilename_left": false,
+              "fullfilename_right": false
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "fullfilename_left": ""
+            }
+          }
+        }
+      ],
       "transparent": true,
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "ae3x7vjv5pmo0e"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "commits_left"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3d535d",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "common_commits"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#81a6ff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "commits_right"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#41475f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 13,
+        "x": 0,
+        "y": 52
+      },
+      "id": 6,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "filename_left",
+        "xTickLabelRotation": 15,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.3.0+security-01",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH files_commits_with_filename AS (\r\n    SELECT no_bot_commits.commit_id, no_bot_commits.hash, files_commits.file_id, files_commits.filename, files_commits.counted_commits AS counted_commits\r\n\tFROM (\r\n\t\tSELECT commits.id AS commit_id, commits.hash\r\n\t\tFROM commits\r\n\t\tWHERE author NOT IN (SELECT id FROM authors WHERE authors.name LIKE '%[bot]%')\r\n\t\tAND commits.datetime < NOW ()\r\n\t\tAND commits.datetime > NOW() - INTERVAL '1 year'\r\n\t) no_bot_commits\r\n\tINNER JOIN\r\n\t\t(SELECT commit_id, files_with_commits_counter.file_id, filename, files_with_commits_counter.counted_commits\r\n\t\tFROM files_commits\r\n\t\tINNER JOIN (\r\n\t\t\tSELECT count(*) AS counted_commits, files.id AS file_id, filename\r\n\t\t\tFROM files_commits\r\n\t\t\tLEFT JOIN files ON files_commits.file_id = files.id\r\n\t\t\tGROUP BY files.id, filename\r\n\t\t) files_with_commits_counter ON files_commits.file_id = files_with_commits_counter.file_id\r\n\tWHERE filename NOT LIKE '%docs%'\r\n\tAND filename NOT LIKE '%.adoc'\r\n\tAND filename NOT LIKE '%Tests.cs'\r\n\tAND filename LIKE '%PowerOptApi%'\r\n\tAND files_with_commits_counter.counted_commits > 5\r\n\t) files_commits\r\n\tON files_commits.commit_id = no_bot_commits.commit_id\r\n)\r\n\r\nSELECT * FROM\r\n(SELECT lefti.filename AS fullfilename_left, substring(lefti.filename from '[^\\/]*$') as filename_left, lefti.counted_commits AS commits_left, count(*) AS common_commits, righti.counted_commits AS commits_right, substring(righti.filename from '[^\\/]*$') as filename_right, righti.filename AS fullfilename_right, ARRAY_AGG(lefti.hash) AS commits\r\n\tFROM files_commits_with_filename AS lefti\r\nLEFT JOIN files_commits_with_filename AS righti ON lefti.commit_id = righti.commit_id\r\nWHERE lefti.file_id < righti.file_id\r\nGROUP BY lefti.file_id, righti.file_id, lefti.filename, righti.filename, lefti.counted_commits, righti.counted_commits\r\nORDER BY common_commits DESC)\r\nWHERE common_commits > 5\r\nAND ((CAST (common_commits AS float))/ (CAST (commits_left AS FLOAT)) > 0.3\r\n\tOR (CAST (common_commits AS float))/ (CAST (commits_right AS FLOAT)) > 0.3)\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "File Coupling",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "common_commits"
+              }
+            ]
+          }
+        },
+        {
+          "id": "limit",
+          "options": {}
+        }
+      ],
+      "type": "barchart"
     }
   ],
   "preload": false,
-  "refresh": "",
   "schemaVersion": 40,
   "tags": [],
   "templating": {
@@ -685,6 +922,6 @@
   "timezone": "browser",
   "title": "GIT DIGGING",
   "uid": "adtxvk2mbg83kd",
-  "version": 7,
+  "version": 9,
   "weekStart": ""
 }

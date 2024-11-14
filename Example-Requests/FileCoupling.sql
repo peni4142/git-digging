@@ -5,7 +5,7 @@ WITH files_commits_with_filename AS (
 		FROM commits
 		WHERE author NOT IN (SELECT id FROM authors WHERE authors.name LIKE '%[bot]%')
 		AND commits.datetime < NOW ()
-		AND commits.datetime > NOW() - INTERVAL '1 year'
+		AND commits.datetime > NOW() - INTERVAL '6 months'
 	) no_bot_commits
 	INNER JOIN
 		(SELECT commit_id, files_with_commits_counter.file_id, filename, files_with_commits_counter.counted_commits

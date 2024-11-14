@@ -18,6 +18,8 @@ WITH files_commits_with_filename AS (
 		) files_with_commits_counter ON files_commits.file_id = files_with_commits_counter.file_id
 	WHERE filename NOT LIKE '%docs%'
 	AND filename NOT LIKE '%.adoc'
+	AND filename NOT LIKE '%Tests.cs'
+	AND filename LIKE '%PowerOptApi%'
 	AND files_with_commits_counter.counted_commits > 5
 	) files_commits
 	ON files_commits.commit_id = no_bot_commits.commit_id

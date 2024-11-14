@@ -16,6 +16,14 @@ const pgOptions = {
 // the key used in git commands and link the authors to their commits in the database commands.
 const authorKey = "%an";
 
+function execCliCommand(cmd)
+{
+  return execSync(cmd, {
+    encoding: "utf-8",
+    maxBuffer: 50 * 1024 * 1024
+  });
+}
+
 async function truncateAll() {
   console.log("delete actual entries");
   const client = new Client(pgOptions);
@@ -30,9 +38,7 @@ async function truncateAll() {
 
 async function transferAuthorsToDatabase() {
   console.log("transfer authors to database");
-  const output = execSync(`git log --format=format:${authorKey}`, {
-    encoding: "utf-8",
-  });
+  const output = execCliCommand(`git log --format=format:${authorKey}`);
   const names = [...new Set(output.split("\n"))];
   const pgValues = names.map((name) => [name]);
 
@@ -50,7 +56,7 @@ async function transferFilesToDatabase() {
   console.log("transfer files to database");
 
   const client = new Client(pgOptions);
-  const output = execSync("find . -type f", { encoding: "utf-8" });
+  const output = execCliCommand("find . -type f");
   const filenames = [...new Set(output.split("\n"))].filter(
     (f) => !/^\s*$/.test(f)
   );
@@ -69,10 +75,7 @@ async function transferFilesToDatabase() {
 
 async function transferCommits() {
   console.log("transfer commits to database");
-    const output = execSync(`git log --format='format:%H;${authorKey};%aI'`, {
-      encoding: "utf-8",
-      maxBuffer: 50 * 1024 * 1024
-    });
+    const output = execCliCommand(`git log --format='format:%H;${authorKey};%aI'`);
 
     const entries = output.split("\n");
 
@@ -107,12 +110,7 @@ async function combineFilesWithCommits() {
 
   for (let i = 0, l = resFiles.length; i < l; i++) {
     let e = resFiles[i];
-    let output = execSync(
-      `git log --follow --format='format:%H' -- '${e.filename}'`,
-      {
-        encoding: "utf-8",
-      }
-    );
+    let output = execCliCommand(`git log --follow --format='format:%H' -- '${e.filename}'`);
     let pgValues = output
       .split("\n")
       .map((hashes) => [e.id, commitsByHash[hashes]]);

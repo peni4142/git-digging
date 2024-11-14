@@ -1,6 +1,7 @@
 import pg from "pg";
 import format from "pg-format";
-import { execSync } from "child_process";
+import { spawn } from "child_process";
+import * as os from 'os';
 import * as util from 'util'
 
 const { Client } = pg;
@@ -13,14 +14,81 @@ const pgOptions = {
   database: "git_reflection",
 };
 
+
+
+async function runParallel(foos)
+{
+  return new Promise((resolve, reject) =>
+    {
+      const allowedProcesses = os.cpus().length
+      const tasksToBeDone = foos.length;
+      let processesCount = 0;
+      let tasksDone = 0;
+
+      function taskDone() {
+        tasksDone++;
+        if(tasksDone % 500 === 0) {
+          console.log(`${tasksDone}/${tasksToBeDone} are done`);
+        }
+      }
+
+      function processFoo()
+      {
+        let promise = foos.shift()();
+        promise.then(_=> {
+          taskDone();
+          if(foos.length !== 0) {
+            processFoo();
+          } else {
+            console.log(`Process number ${processesCount} ended`)
+            processesCount--
+            if(processesCount === 0) {
+              resolve();
+            }
+          }
+        })
+      }
+
+      // initial start
+      while(processesCount < allowedProcesses && processesCount < foos.length)
+      {
+        processesCount ++;
+        console.log(`Process number ${processesCount} started`)
+        processFoo();
+      }
+    });
+
+}
+
+
 // the key used in git commands and link the authors to their commits in the database commands.
 const authorKey = "%an";
 
-function execCliCommand(cmd)
+async function execCliCommand(cmd)
 {
-  return execSync(cmd, {
-    encoding: "utf-8",
-    maxBuffer: 50 * 1024 * 1024
+  return new Promise((resolve, reject) => {
+    const process = spawn(cmd, [], { shell: true });
+
+    let output = "";
+    let error = ""
+
+    process.stdout.on('data', data => {
+      output += data;
+    });
+
+    process.stderr.on('data', data => {
+      error += data;
+    });
+
+    process.on('close', (code) => {
+      if(code != 0){
+        console.log(`process ended with code ${code}`);
+        reject(error)
+      } else {
+        resolve(output);
+      }
+    })
+
   });
 }
 
@@ -38,7 +106,7 @@ async function truncateAll() {
 
 async function transferAuthorsToDatabase() {
   console.log("transfer authors to database");
-  const output = execCliCommand(`git log --format=format:${authorKey}`);
+  const output = await execCliCommand(`git log --format=format:${authorKey}`);
   const names = [...new Set(output.split("\n"))];
   const pgValues = names.map((name) => [name]);
 
@@ -56,7 +124,7 @@ async function transferFilesToDatabase() {
   console.log("transfer files to database");
 
   const client = new Client(pgOptions);
-  const output = execCliCommand("find . -type f");
+  const output = await execCliCommand('git ls-files');
   const filenames = [...new Set(output.split("\n"))].filter(
     (f) => !/^\s*$/.test(f)
   );
@@ -75,7 +143,7 @@ async function transferFilesToDatabase() {
 
 async function transferCommits() {
   console.log("transfer commits to database");
-    const output = execCliCommand(`git log --format='format:%H;${authorKey};%aI'`);
+    const output = await execCliCommand(`git log --format='format:%H;${authorKey};%aI'`);
 
     const entries = output.split("\n");
 
@@ -108,9 +176,19 @@ async function combineFilesWithCommits() {
   const resFiles = (await client.query("SELECT id, filename FROM files", []))
     .rows;
 
+  await runParallel(resFiles.map(file => () => getCommitsToFile(file, commitsByHash, client)))
+  /*
   for (let i = 0, l = resFiles.length; i < l; i++) {
-    let e = resFiles[i];
-    let output = execCliCommand(`git log --follow --format='format:%H' -- '${e.filename}'`);
+    await getCommitsToFile(resFiles[i], commitsByHash, client);
+  }
+  await client.end();
+  */
+  console.log(`${resFiles.length} linked files to their commits`);
+}
+
+async function getCommitsToFile(e, commitsByHash, client)
+{
+    let output = await execCliCommand(`git log --follow --format='format:%H' -- '${e.filename}'`);
     let pgValues = output
       .split("\n")
       .map((hashes) => [e.id, commitsByHash[hashes]]);
@@ -128,12 +206,10 @@ async function combineFilesWithCommits() {
         []
       );
     }
-    if ((i + 1) % 50 == 0) {
+    /*if ((i + 1) % 50 == 0) {
       console.log(`${i + 1}/${l + 1} files linked to their commits`);
     }
-  }
-  await client.end();
-  console.log(`${resFiles.length} linked files to their commits`);
+    */
 }
 
 async function call() {

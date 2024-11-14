@@ -1,6 +1,7 @@
 import pg from "pg";
 import format from "pg-format";
 import { execSync } from "child_process";
+import * as util from 'util'
 
 const { Client } = pg;
 
@@ -68,28 +69,29 @@ async function transferFilesToDatabase() {
 
 async function transferCommits() {
   console.log("transfer commits to database");
-  const output = execSync(`git log --format='format:%H;${authorKey};%aI'`, {
-    encoding: "utf-8",
-  });
+    const output = execSync(`git log --format='format:%H;${authorKey};%aI'`, {
+      encoding: "utf-8",
+      maxBuffer: 50 * 1024 * 1024
+    });
 
-  const entries = output.split("\n");
+    const entries = output.split("\n");
 
-  const authorsByName = {};
-  const client = new Client(pgOptions);
-  await client.connect();
-  const res = await client.query("SELECT id, name FROM authors", []);
-  res.rows.forEach((e) => (authorsByName[e.name] = e.id));
+    const authorsByName = {};
+    const client = new Client(pgOptions);
+    await client.connect();
+    const res = await client.query("SELECT id, name FROM authors", []);
+    res.rows.forEach((e) => (authorsByName[e.name] = e.id));
 
-  const pgValues = entries.map((entry) => {
-    const split = entry.split(";");
-    return [split[0], authorsByName[split[1]], split[2]];
-  });
-  await client.query(
-    format("INSERT INTO commits (hash, author, datetime) VALUES %L;", pgValues),
-    []
-  );
-  await client.end();
-  console.log(`${pgValues.length} commits transfered to database`);
+    const pgValues = entries.map((entry) => {
+      const split = entry.split(";");
+      return [split[0], authorsByName[split[1]], split[2]];
+    });
+    await client.query(
+      format("INSERT INTO commits (hash, author, datetime) VALUES %L;", pgValues),
+      []
+    );
+    await client.end();
+    console.log(`${pgValues.length} commits transfered to database`);
 }
 
 async function combineFilesWithCommits() {
